@@ -47,20 +47,23 @@ public class AnalyzeData {
 		String fileName = project + "training.arff";
 		String line = null;
 		int i;
-		
-    	PrintStream printer = new PrintStream(new File(fileName));
-    	
-    	printer.println("@relation "+project);
-    	
-    	for(i=0; i<attributes.size(); i++) {
-        	printer.println("@attribute "+attributes.get(i));
-    	}
-		
-    	
-    	printer.println("@data");
-    	
-		try (BufferedReader br = new BufferedReader(new FileReader(path))) {
 
+		
+		try (BufferedReader br = new BufferedReader(new FileReader(path));
+				PrintStream printer = new PrintStream(new File(fileName))) {
+
+			
+	    	printer.println("@relation "+project);
+	    	
+	    	for(i=0; i<attributes.size(); i++) {
+	        	printer.println("@attribute "+attributes.get(i));
+	    	}
+
+	    	printer.println("@data");
+
+			
+	    	//READING FROM CSV FILE
+	    	
 			line = br.readLine();	//Ignore first line
 			
             while ((line = br.readLine()) != null) {
@@ -88,9 +91,7 @@ public class AnalyzeData {
         } catch (IOException e) {
         	logger.severe(e.toString());
         }
-		
-		printer.close();
-		
+				
 		return fileName;
 		
 	}
@@ -102,20 +103,21 @@ public class AnalyzeData {
 		String fileName = project + "testing.arff";
 		String line = null;
 		int i;
+    	
 		
-    	PrintStream printer = new PrintStream(new File(fileName));
-    	
-    	printer.println("@relation "+project);
-    	
-    	for(i=0; i<attributes.size(); i++) {
-        	printer.println("@attribute "+attributes.get(i));
-    	}
-		
-    	
-    	printer.println("@data");
-    	
-		try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+		try (BufferedReader br = new BufferedReader(new FileReader(path));
+		    	PrintStream printer = new PrintStream(new File(fileName))) {
+	    	
+			
+			printer.println("@relation "+project);
+	    	
+	    	for(i=0; i<attributes.size(); i++) {
+	        	printer.println("@attribute "+attributes.get(i));
+	    	}
 
+	    	printer.println("@data");
+			
+	    	//READING FROM CSV FILE
 			line = br.readLine();	//Ignore first line
 			
             while ((line = br.readLine()) != null) {
@@ -147,9 +149,7 @@ public class AnalyzeData {
         } catch (IOException e) {
         	logger.severe(e.toString());
         }
-		
-		printer.close();
-		
+				
 		return fileName;
 		
 	}
@@ -242,11 +242,13 @@ public class AnalyzeData {
    
     
     //Applies no sampling / oversampling / undersampling / SMOTE for balancing
-    public List<Record> balancing(String project, int releases, String featureSel, Instances training, Instances testing) throws Exception {
+    public List<Record> balancing(String project, int releases, String featureSel, Instances training, Instances testing,
+    		double percent) throws Exception {
 		    
     	Record r = null;
     	FilteredClassifier fc = null;
     	int i = 0;
+    	String[] opts;
     	
     	List<Record> records = new ArrayList<>();
     	
@@ -263,7 +265,9 @@ public class AnalyzeData {
     	fc = new FilteredClassifier();
 
     	Resample resample = new Resample();
-		resample.setInputFormat(training);
+    	opts = new String[]  {"-B", "1.0", "-Z", String.valueOf(2*percent*100)};
+		resample.setOptions(opts);
+    	resample.setInputFormat(training);
     	
     	for(i=0; i<3; i++) {
     		r = new Record(project,releases,featureSel,"Oversampling");
@@ -275,7 +279,7 @@ public class AnalyzeData {
     	fc = new FilteredClassifier();
 
 		SpreadSubsample  spreadSubsample = new SpreadSubsample();
-		String[] opts = new String[]{ "-M", "1.0"};
+		opts = new String[]{ "-M", "1.0"};
 		spreadSubsample.setOptions(opts);
 		fc.setFilter(spreadSubsample);
     	
@@ -340,6 +344,7 @@ public class AnalyzeData {
     	Record r = null;
     	int trainData = 0;
     	int trainBuggy = 0;
+    	double percent = 0;
     	
     	List<Record> records = new ArrayList<>();	//list with the records to write in the output csv file
     	int[] releases = new int[maxRelease];	//number of buggy classes for each release
@@ -357,6 +362,8 @@ public class AnalyzeData {
     		trainData += releases[i-1];
     		trainBuggy+= buggy[i-1];
     		
+    		percent = (double)(trainBuggy + buggy[i])/(trainData + releases[i]);
+    		
     		DataSource trainSource = new DataSource(training);
     		Instances trainingNoFilter = trainSource.getDataSet();
     		
@@ -369,7 +376,7 @@ public class AnalyzeData {
     		trainingNoFilter.setClassIndex(numAttrNoFilter - 1);
     		testingNoFilter.setClassIndex(numAttrNoFilter - 1);
     		
-    		List<Record> noSelection = balancing(project, i, "No selection", trainingNoFilter, testingNoFilter);
+    		List<Record> noSelection = balancing(project, i, "No selection", trainingNoFilter, testingNoFilter, percent);
     		
     		for(int j=0; j<noSelection.size(); j++) {
     			r = noSelection.get(j);
@@ -399,7 +406,7 @@ public class AnalyzeData {
     		trainingFiltered.setClassIndex(numAttrFiltered - 1);
     		testingFiltered.setClassIndex(numAttrFiltered - 1);
 
-    		List<Record> bestFirst = balancing(project, i, "Best first", trainingFiltered, testingFiltered);
+    		List<Record> bestFirst = balancing(project, i, "Best first", trainingFiltered, testingFiltered, percent);
     		
     		for(int j=0; j<bestFirst.size(); j++) {
     			r = bestFirst.get(j);
