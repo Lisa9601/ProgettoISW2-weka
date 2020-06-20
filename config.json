@@ -1,6 +1,9 @@
 {
 
 	"project":"Project name",
-	"path":"Path to the csv file with the dataset"
+	"releases":"Number of releases to consider",
+	"path":"Path to the csv file with the dataset",
+	"separator":"Separator used in csv file",
+	"attributes":["size numeric","loc_touched numeric","loc_added numeric","max_loc_added numeric","avg_loc_added numeric","n_auth numeric","n_fix numeric","n_r numeric","chg_set_size numeric","buggy { Yes, No}"]
 
 }

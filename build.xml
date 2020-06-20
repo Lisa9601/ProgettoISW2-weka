@@ -14,6 +14,7 @@
         <pathelement location="lib/weka-src.jar"/>
         <pathelement location="lib/weka.jar"/>
         <pathelement location="lib/json-20190722.jar"/>
+        <pathelement location="lib/SMOTE.jar"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
@@ -50,5 +51,10 @@
     <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
         <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
         <antcall target="build"/>
+    </target>
+    <target name="AnalyzeData">
+        <java classname="main.java.AnalyzeData" failonerror="true" fork="yes">
+            <classpath refid="ProgettoISW2-weka.classpath"/>
+        </java>
     </target>
 </project>
