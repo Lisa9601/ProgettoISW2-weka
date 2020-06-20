@@ -11,6 +11,9 @@
     <property name="source" value="1.8"/>
     <path id="ProgettoISW2-weka.classpath">
         <pathelement location="bin"/>
+        <pathelement location="lib/weka-src.jar"/>
+        <pathelement location="lib/weka.jar"/>
+        <pathelement location="lib/json-20190722.jar"/>
     </path>
     <target name="init">
         <mkdir dir="bin"/>
