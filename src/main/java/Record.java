@@ -5,9 +5,9 @@ public class Record {
 	
 	private String dataset;		//name of the project	
 	private int trainRel;		//number of releases used for training
-	private float train;		//%training  (data on training / total data)
-	private float trainDef;		//%defective in training
-	private float testDef;		//%defective in testing
+	private double train;		//%training  (data on training / total data)
+	private double trainDef;		//%defective in training
+	private double testDef;		//%defective in testing
     private String classifier;	//name of the classifier
     private String balancing;	//name of the balancing
 	private String featureSel;	//feature selection
@@ -63,28 +63,33 @@ public class Record {
 	}
 
 
-	public float getTrain() {
+	public double getTrain() {
 		return train;
 	}
 
 
-	public void setTrain(float train) {
+	public void setTrain(double train) {
 		this.train = train;
 	}
 
 
-	public float getTrainDef() {
+	public double getTrainDef() {
 		return trainDef;
 	}
 
 
-	public void setTrainDef(float trainDef) {
+	public void setTrainDef(double trainDef) {
 		this.trainDef = trainDef;
 	}
 
 
-	public float getTestDef() {
+	public double getTestDef() {
 		return testDef;
+	}
+
+
+	public void setTestDef(double testDef) {
+		this.testDef = testDef;
 	}
 
 

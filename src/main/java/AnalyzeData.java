@@ -39,8 +39,8 @@ public class AnalyzeData {
         System.setProperty("java.util.logging.config.file", "logging.properties");
         logger = Logger.getLogger(AnalyzeData.class.getName());
     }
+      
     
-	
 	//Creates a new arff file for training using the data in the csv file in path
 	public String createTrainingArff(String project, String path, String splitBy, List<String> attributes, int release) throws FileNotFoundException {
 		
@@ -242,11 +242,13 @@ public class AnalyzeData {
    
     
     //Applies no sampling / oversampling / undersampling / SMOTE for balancing
-    public void balancing(String project, int releases, String featureSel, Instances training, Instances testing, List<Record> records) throws Exception {
+    public List<Record> balancing(String project, int releases, String featureSel, Instances training, Instances testing) throws Exception {
 		    
     	Record r = null;
     	FilteredClassifier fc = null;
     	int i = 0;
+    	
+    	List<Record> records = new ArrayList<>();
     	
 		//no sampling
     	fc = new FilteredClassifier();
@@ -295,7 +297,38 @@ public class AnalyzeData {
     		classifier(training, testing, new FilteredClassifier(), r, i);
     		records.add(r);
     	}
-	    	
+    	
+	    return records;	
+    }
+    
+    
+    //Gathers info for each release
+    public void getInfo(String path, String separator, int[] releases, int[] buggy) {
+    	String line = null;
+    	
+    	//Taking info from csv file in path
+		try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+
+			line = br.readLine();	//Ignore first line
+			
+            while ((line = br.readLine()) != null) {
+            	
+                String[] values = line.split(separator);
+                int num = Integer.parseInt(values[0])-1;
+                
+                releases[num]++;
+                
+                if(values[values.length-1].compareTo("Yes") == 0) {
+                    buggy[num]++;
+                }
+            }    
+
+        } catch (FileNotFoundException e) {
+        	logger.severe(e.toString());
+        } catch (IOException e) {
+        	logger.severe(e.toString());
+        }	
+    	
     }
     
     
@@ -304,15 +337,25 @@ public class AnalyzeData {
     	
     	String training = null;		//name of the file with the training dataset
     	String testing = null;		//name of the file with the testing dataset
+    	Record r = null;
+    	int trainData = 0;
+    	int trainBuggy = 0;
     	
     	List<Record> records = new ArrayList<>();	//list with the records to write in the output csv file
+    	int[] releases = new int[maxRelease];	//number of buggy classes for each release
+    	int[] buggy = new int[maxRelease];		//tot number of classes in the release
     	
+    	getInfo(path, separator, releases, buggy);
+    	    	
     	logger.info("Analyzing data ....");
     	
-    	for(int i=2; i<=maxRelease; i++) {
+    	for(int i=1; i<releases.length; i++) {
     		
-    		training = createTrainingArff(project,path,separator,attributes,i);
-    		testing = createTestingArff(project,path,separator,attributes,i);
+    		training = createTrainingArff(project,path,separator,attributes,i+1);
+    		testing = createTestingArff(project,path,separator,attributes,i+1);
+    		
+    		trainData += releases[i-1];
+    		trainBuggy+= buggy[i-1];
     		
     		DataSource trainSource = new DataSource(training);
     		Instances trainingNoFilter = trainSource.getDataSet();
@@ -320,12 +363,22 @@ public class AnalyzeData {
     		DataSource testSource = new DataSource(testing);
     		Instances testingNoFilter = testSource.getDataSet();
     		
+    		
     		//No selection
     		int numAttrNoFilter = trainingNoFilter.numAttributes();
     		trainingNoFilter.setClassIndex(numAttrNoFilter - 1);
     		testingNoFilter.setClassIndex(numAttrNoFilter - 1);
     		
-    		balancing(project, i-1, "No selection", trainingNoFilter, testingNoFilter, records);
+    		List<Record> noSelection = balancing(project, i, "No selection", trainingNoFilter, testingNoFilter);
+    		
+    		for(int j=0; j<noSelection.size(); j++) {
+    			r = noSelection.get(j);
+    			r.setTrain((double)trainData/(trainData+releases[i]));
+    			r.setTrainDef((double)trainBuggy/trainData);
+    			r.setTestDef((double)buggy[i]/releases[i]);
+    			records.add(r);
+    		}
+    		
     		
     		//Best first feature selection
     		AttributeSelection filter = new AttributeSelection();
@@ -346,7 +399,15 @@ public class AnalyzeData {
     		trainingFiltered.setClassIndex(numAttrFiltered - 1);
     		testingFiltered.setClassIndex(numAttrFiltered - 1);
 
-    		balancing(project, i-1, "Best first", trainingFiltered, testingFiltered, records);
+    		List<Record> bestFirst = balancing(project, i, "Best first", trainingFiltered, testingFiltered);
+    		
+    		for(int j=0; j<bestFirst.size(); j++) {
+    			r = bestFirst.get(j);
+    			r.setTrain((double)trainData/(trainData+releases[i]));
+    			r.setTrainDef((double)trainBuggy/trainData);
+    			r.setTestDef((double)buggy[i]/releases[i]);
+    			records.add(r);
+    		}
     		
     	}
 
