@@ -202,7 +202,7 @@ public class AnalyzeData {
     
     //Applies no sampling / oversampling / undersampling / SMOTE for balancing
     public List<Record> balancing(String project, int releases, String featureSel, Instances training, Instances testing,
-    		double percent) throws Exception {
+    		double percent){
 		    
     	Record r = null;
     	FilteredClassifier fc = null;
@@ -224,8 +224,14 @@ public class AnalyzeData {
 
     	Resample resample = new Resample();
     	opts = new String[]  {"-B", "1.0", "-Z", String.valueOf(2*percent*100)};
-		resample.setOptions(opts);
-    	resample.setInputFormat(training);
+
+    	try {
+			resample.setOptions(opts);
+	    	resample.setInputFormat(training);
+		} catch (Exception e) {
+			logger.severe(e.toString());
+		}
+
     	fc.setFilter(resample);    	
     	
     	for(i=0; i<3; i++) {
@@ -239,7 +245,13 @@ public class AnalyzeData {
 
 		SpreadSubsample  spreadSubsample = new SpreadSubsample();
 		opts = new String[]{ "-M", "1.0"};
-		spreadSubsample.setOptions(opts);
+
+		try {
+			spreadSubsample.setOptions(opts);
+		} catch (Exception e) {
+			logger.severe(e.toString());
+		}
+		
 		fc.setFilter(spreadSubsample);
     	
     	for(i=0; i<3; i++) {
@@ -252,8 +264,14 @@ public class AnalyzeData {
     	fc = new FilteredClassifier();
     	
 	    SMOTE smote = new SMOTE();
-		smote.setInputFormat(training);
-		fc.setFilter(smote);
+
+	    try {
+			smote.setInputFormat(training);
+		} catch (Exception e) {
+			logger.severe(e.toString());
+		}
+		
+	    fc.setFilter(smote);
     	
     	for(i=0; i<3; i++) {
     		r = new Record(project,releases,featureSel,"SMOTE");
@@ -294,7 +312,7 @@ public class AnalyzeData {
     
     
     //Uses walk forward as evaluation technique
-    public void walkForward(String project, String path, String separator, List<String> attributes, int maxRelease) throws Exception {
+    public void walkForward(String project, String path, String separator, List<String> attributes, int maxRelease) throws FileNotFoundException {
     	
     	String training = null;		//name of the file with the training dataset
     	String testing = null;		//name of the file with the testing dataset
@@ -321,57 +339,63 @@ public class AnalyzeData {
     		
     		percent = (double)(trainBuggy + buggy[i])/(trainData + releases[i]);
     		
-    		DataSource trainSource = new DataSource(training);
-    		Instances trainingNoFilter = trainSource.getDataSet();
-    		
-    		DataSource testSource = new DataSource(testing);
-    		Instances testingNoFilter = testSource.getDataSet();
-    		
-    		
-    		//No selection
-    		int numAttrNoFilter = trainingNoFilter.numAttributes();
-    		trainingNoFilter.setClassIndex(numAttrNoFilter - 1);
-    		testingNoFilter.setClassIndex(numAttrNoFilter - 1);
-    		
-    		List<Record> noSelection = balancing(project, i, "No selection", trainingNoFilter, testingNoFilter, percent);
-    		
-    		for(int j=0; j<noSelection.size(); j++) {
-    			r = noSelection.get(j);
-    			r.setTrain((double)trainData/(trainData+releases[i]));
-    			r.setTrainDef((double)trainBuggy/trainData);
-    			r.setTestDef((double)buggy[i]/releases[i]);
-    			records.add(r);
-    		}
-    		
-    		
-    		//Best first feature selection
-    		AttributeSelection filter = new AttributeSelection();
+    		DataSource trainSource;
+			try {
+				trainSource = new DataSource(training);
+	    		Instances trainingNoFilter = trainSource.getDataSet();
+	    		
+	    		DataSource testSource = new DataSource(testing);
+	    		Instances testingNoFilter = testSource.getDataSet();
+	    		
+	    		
+	    		//No selection
+	    		int numAttrNoFilter = trainingNoFilter.numAttributes();
+	    		trainingNoFilter.setClassIndex(numAttrNoFilter - 1);
+	    		testingNoFilter.setClassIndex(numAttrNoFilter - 1);
+	    		
+	    		List<Record> noSelection = balancing(project, i, "No selection", trainingNoFilter, testingNoFilter, percent);
+	    		
+	    		for(int j=0; j<noSelection.size(); j++) {
+	    			r = noSelection.get(j);
+	    			r.setTrain((double)trainData/(trainData+releases[i]));
+	    			r.setTrainDef((double)trainBuggy/trainData);
+	    			r.setTestDef((double)buggy[i]/releases[i]);
+	    			records.add(r);
+	    		}
+	    		
+	    		
+	    		//Best first feature selection
+	    		AttributeSelection filter = new AttributeSelection();
+	
+	    		CfsSubsetEval eval = new CfsSubsetEval();
+	    		GreedyStepwise search = new GreedyStepwise();
+	    		search.setSearchBackwards(true);
+	
+	    		filter.setEvaluator(eval);
+	    		filter.setSearch(search);
+	    		filter.setInputFormat(trainingNoFilter);
+	
+	    		Instances trainingFiltered = Filter.useFilter(trainingNoFilter, filter);
+	    		Instances testingFiltered = Filter.useFilter(testingNoFilter, filter);		
+	    		
+	    		int numAttrFiltered = trainingFiltered.numAttributes();
+	    		
+	    		trainingFiltered.setClassIndex(numAttrFiltered - 1);
+	    		testingFiltered.setClassIndex(numAttrFiltered - 1);
+	
+	    		List<Record> bestFirst = balancing(project, i, "Best first", trainingFiltered, testingFiltered, percent);
+	    		
+	    		for(int j=0; j<bestFirst.size(); j++) {
+	    			r = bestFirst.get(j);
+	    			r.setTrain((double)trainData/(trainData+releases[i]));
+	    			r.setTrainDef((double)trainBuggy/trainData);
+	    			r.setTestDef((double)buggy[i]/releases[i]);
+	    			records.add(r);
+	    		}
+			} catch (Exception e) {
+				logger.severe(e.toString());
+			}
 
-    		CfsSubsetEval eval = new CfsSubsetEval();
-    		GreedyStepwise search = new GreedyStepwise();
-    		search.setSearchBackwards(true);
-
-    		filter.setEvaluator(eval);
-    		filter.setSearch(search);
-    		filter.setInputFormat(trainingNoFilter);
-
-    		Instances trainingFiltered = Filter.useFilter(trainingNoFilter, filter);
-    		Instances testingFiltered = Filter.useFilter(testingNoFilter, filter);		
-    		
-    		int numAttrFiltered = trainingFiltered.numAttributes();
-    		
-    		trainingFiltered.setClassIndex(numAttrFiltered - 1);
-    		testingFiltered.setClassIndex(numAttrFiltered - 1);
-
-    		List<Record> bestFirst = balancing(project, i, "Best first", trainingFiltered, testingFiltered, percent);
-    		
-    		for(int j=0; j<bestFirst.size(); j++) {
-    			r = bestFirst.get(j);
-    			r.setTrain((double)trainData/(trainData+releases[i]));
-    			r.setTrainDef((double)trainBuggy/trainData);
-    			r.setTestDef((double)buggy[i]/releases[i]);
-    			records.add(r);
-    		}
     		
     	}
 
