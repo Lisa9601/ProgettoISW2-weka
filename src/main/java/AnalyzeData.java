@@ -41,13 +41,18 @@ public class AnalyzeData {
     }
       
     
-	//Creates a new arff file for training using the data in the csv file in path
-	public String createTrainingArff(String project, String path, String splitBy, List<String> attributes, int release) throws FileNotFoundException {
-		
-		String fileName = project + "training.arff";
+    //Creates a new arff file using the data in the csv specified in path
+    public String createArff(String project, String path, String splitBy, List<String> attributes, int release, String name) {
+    	
+		String fileName = project + name + ".arff";
 		String line = null;
 		int i;
 
+		if((name.compareTo("training") != 0) && (name.compareTo("testing") != 0)) {
+			logger.severe("Invalid argument name");
+			return line;
+		}
+		
 		
 		try (BufferedReader br = new BufferedReader(new FileReader(path));
 				PrintStream printer = new PrintStream(new File(fileName))) {
@@ -67,79 +72,22 @@ public class AnalyzeData {
 			line = br.readLine();	//Ignore first line
 			
             while ((line = br.readLine()) != null) {
-
-                String newLine = "";
             	
                 String[] values = line.split(splitBy);
-                
-                if(Integer.parseInt(values[0]) >= release) {
-                	break;
-                }
-                
-                newLine = values[2];
-                
-                for(i=3;i<values.length;i++) {
-                	newLine += "," + values[i];
-                }
-                
-                printer.println(newLine);
-
-            }
-
-        } catch (IOException e) {
-        	logger.severe(e.toString());
-        }
-				
-		return fileName;
-		
-	}
-	
-	
-	//Creates a new arff file for testing using the data in the csv file in path
-	public String createTestingArff(String project, String path, String splitBy, List<String> attributes, int release) throws FileNotFoundException {
-		
-		String fileName = project + "testing.arff";
-		String line = null;
-		int i;
-    	
-		
-		try (BufferedReader br = new BufferedReader(new FileReader(path));
-		    	PrintStream printer = new PrintStream(new File(fileName))) {
-	    	
-			
-			printer.println("@relation "+project);
-	    	
-	    	for(i=0; i<attributes.size(); i++) {
-	        	printer.println("@attribute "+attributes.get(i));
-	    	}
-
-	    	printer.println("@data");
-			
-	    	//READING FROM CSV FILE
-			line = br.readLine();	//Ignore first line
-			
-            while ((line = br.readLine()) != null) {
-            	
-                String newLine = "";
-            	
-                String[] values = line.split(splitBy);
-                
                 int currentRelease = Integer.parseInt(values[0]);
                 
-                if(currentRelease > release) {
+                if(currentRelease > release || ((name.compareTo("training") == 0) && currentRelease == release)) {
                 	break;
                 }
-                else if(currentRelease == release) {
-                    newLine = values[2];
-                    
-                    for(i=3;i<values.length;i++) {
-                    	newLine += "," + values[i];
-                    }
-                    
-                    printer.println(newLine);
-                    
+                                    
+                StringBuilder sb = new StringBuilder();
+                sb.append(values[2]);
+                
+                for(i=3;i<values.length;i++) {
+                	sb.append(","+values[i]);
                 }
-
+                
+                printer.println(sb.toString());
             }
 
         } catch (IOException e) {
@@ -147,9 +95,10 @@ public class AnalyzeData {
         }
 				
 		return fileName;
-		
-	}
-
+    	
+    	
+    }
+    
 	
     //Writes the dataset in a csv file
     public void createCsv(String project, List<Record> records) throws FileNotFoundException {
@@ -356,8 +305,8 @@ public class AnalyzeData {
     	
     	for(int i=1; i<releases.length; i++) {
     		
-    		training = createTrainingArff(project,path,separator,attributes,i+1);
-    		testing = createTestingArff(project,path,separator,attributes,i+1);
+    		training = createArff(project,path,separator,attributes,i+1,"training");
+    		testing = createArff(project,path,separator,attributes,i+1,"testing");
     		
     		trainData += releases[i-1];
     		trainBuggy+= buggy[i-1];
