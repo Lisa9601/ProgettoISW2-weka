@@ -32,7 +32,8 @@ public class AnalyzeData {
 
 	
     private static Logger logger;
-    
+    private static final String TRAINING = "training";
+    private static final String TESTING = "testing";
     
     static {
 
@@ -48,7 +49,7 @@ public class AnalyzeData {
 		String line = null;
 		int i;
 
-		if((name.compareTo("training") != 0) && (name.compareTo("testing") != 0)) {
+		if((name.compareTo(TESTING) != 0) && (name.compareTo(TRAINING) != 0)) {
 			logger.severe("Invalid argument name");
 			return line;
 		}
@@ -76,7 +77,7 @@ public class AnalyzeData {
                 String[] values = line.split(splitBy);
                 int currentRelease = Integer.parseInt(values[0]);
                 
-                if(currentRelease > release || ((name.compareTo("training") == 0) && currentRelease == release)) {
+                if(currentRelease > release || ((name.compareTo(TRAINING) == 0) && currentRelease == release)) {
                 	break;
                 }
                                     
@@ -128,68 +129,75 @@ public class AnalyzeData {
     
     
     //Uses RandomForest / NaiveBayes / Ibk as classifiers
-    public void classifier(Instances training, Instances testing, FilteredClassifier fc, Record r, int i) throws Exception {
-    	Evaluation eval = new Evaluation(testing);
+    public void classifier(Instances training, Instances testing, FilteredClassifier fc, Record r, int i) {
+		Evaluation eval;
     	int trainSize = 0;
     	int testSize = 0;
     	
 		trainSize = training.size();
 		testSize = testing.size();
     	
-    	//The parameter i specifies which classifier to use
-    	switch(i) {
-    	
-    	case 0:
-    		//RandomForest
-    		r.setClassifier("RandomForest");
-    		
-    	   	RandomForest randomForest = new RandomForest();        	
-        	fc.setClassifier(randomForest);
-    		fc.buildClassifier(training);		
-    		
-    		break;
-    		
-    	case 1:
-    		//NaiveBayes
-    		r.setClassifier("NaiveBayes");
-    		
-    	 	NaiveBayes naiveBayes = new NaiveBayes();        	
-        	fc.setClassifier(naiveBayes);    		
-    		fc.buildClassifier(training);
-    		
-    		break;
-    		
-    	case 2:
-    		//Ibk
-    		r.setClassifier("Ibk");
-    		
-    		IBk ibk = new IBk();
-        	fc.setClassifier(ibk);    		
-    		fc.buildClassifier(training);
-    		
-    		break;
-    	
-    	default:
-    		
-    		logger.severe("Illegal value for argument i");
-    		
-    		break;
-    		
-    	}
-    	
-		eval.evaluateModel(fc, testing);
-    	
-		r.setTrain((float)trainSize/(trainSize+testSize));
-		r.setTp(eval.numTruePositives(1));
-		r.setFp(eval.numFalsePositives(1));
-		r.setTn(eval.numTrueNegatives(1));
-		r.setFn(eval.numFalseNegatives(1));
-		r.setPrecision(eval.precision(1));
-		r.setRecall(eval.recall(1));
-		r.setRoc(eval.areaUnderROC(1));
-		r.setKappa(eval.kappa());
-    	
-    }
+		try {
+			eval = new Evaluation(testing);
+		
+	    	//The parameter i specifies which classifier to use
+	    	switch(i) {
+	    	
+	    	case 0:
+	    		//RandomForest
+	    		r.setClassifier("RandomForest");
+	    		
+	    	   	RandomForest randomForest = new RandomForest();        	
+	        	fc.setClassifier(randomForest);
+	    		fc.buildClassifier(training);		
+	    		
+	    		break;
+	    		
+	    	case 1:
+	    		//NaiveBayes
+	    		r.setClassifier("NaiveBayes");
+	    		
+	    	 	NaiveBayes naiveBayes = new NaiveBayes();        	
+	        	fc.setClassifier(naiveBayes);    		
+	    		fc.buildClassifier(training);
+	    		
+	    		break;
+	    		
+	    	case 2:
+	    		//Ibk
+	    		r.setClassifier("Ibk");
+	    		
+	    		IBk ibk = new IBk();
+	        	fc.setClassifier(ibk);    		
+	    		fc.buildClassifier(training);
+	    		
+	    		break;
+	    	
+	    	default:
+	    		
+	    		logger.severe("Illegal value for argument i");
+	    		
+	    		break;
+	    		
+	    	}
+	    	
+			eval.evaluateModel(fc, testing);
+	    	
+			r.setTrain((float)trainSize/(trainSize+testSize));
+			r.setTp(eval.numTruePositives(1));
+			r.setFp(eval.numFalsePositives(1));
+			r.setTn(eval.numTrueNegatives(1));
+			r.setFn(eval.numFalseNegatives(1));
+			r.setPrecision(eval.precision(1));
+			r.setRecall(eval.recall(1));
+			r.setRoc(eval.areaUnderROC(1));
+			r.setKappa(eval.kappa());
+	    	
+		} catch (Exception e) {
+			logger.severe(e.toString());
+		}
+		
+	}
    
     
     //Applies no sampling / oversampling / undersampling / SMOTE for balancing
@@ -305,8 +313,8 @@ public class AnalyzeData {
     	
     	for(int i=1; i<releases.length; i++) {
     		
-    		training = createArff(project,path,separator,attributes,i+1,"training");
-    		testing = createArff(project,path,separator,attributes,i+1,"testing");
+    		training = createArff(project,path,separator,attributes,i+1,TRAINING);
+    		testing = createArff(project,path,separator,attributes,i+1,TESTING);
     		
     		trainData += releases[i-1];
     		trainBuggy+= buggy[i-1];
