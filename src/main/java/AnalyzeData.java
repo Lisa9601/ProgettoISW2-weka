@@ -79,15 +79,13 @@ public class AnalyzeData {
                 newLine = values[2];
                 
                 for(i=3;i<values.length;i++) {
-                	newLine = newLine + "," + values[i];
+                	newLine += "," + values[i];
                 }
                 
                 printer.println(newLine);
 
             }
 
-        } catch (FileNotFoundException e) {
-        	logger.severe(e.toString());
         } catch (IOException e) {
         	logger.severe(e.toString());
         }
@@ -135,7 +133,7 @@ public class AnalyzeData {
                     newLine = values[2];
                     
                     for(i=3;i<values.length;i++) {
-                    	newLine = newLine + "," + values[i];
+                    	newLine += "," + values[i];
                     }
                     
                     printer.println(newLine);
@@ -144,8 +142,6 @@ public class AnalyzeData {
 
             }
 
-        } catch (FileNotFoundException e) {
-        	logger.severe(e.toString());
         } catch (IOException e) {
         	logger.severe(e.toString());
         }
@@ -198,8 +194,8 @@ public class AnalyzeData {
     		//RandomForest
     		r.setClassifier("RandomForest");
     		
-    	   	RandomForest RandomForest = new RandomForest();        	
-        	fc.setClassifier(RandomForest);
+    	   	RandomForest randomForest = new RandomForest();        	
+        	fc.setClassifier(randomForest);
     		fc.buildClassifier(training);		
     		
     		break;
@@ -208,8 +204,8 @@ public class AnalyzeData {
     		//NaiveBayes
     		r.setClassifier("NaiveBayes");
     		
-    	 	NaiveBayes NaiveBayes = new NaiveBayes();        	
-        	fc.setClassifier(NaiveBayes);    		
+    	 	NaiveBayes naiveBayes = new NaiveBayes();        	
+        	fc.setClassifier(naiveBayes);    		
     		fc.buildClassifier(training);
     		
     		break;
@@ -224,6 +220,12 @@ public class AnalyzeData {
     		
     		break;
     	
+    	default:
+    		
+    		logger.severe("Illegal value for argument i");
+    		
+    		break;
+    		
     	}
     	
 		eval.evaluateModel(fc, testing);
@@ -253,7 +255,6 @@ public class AnalyzeData {
     	List<Record> records = new ArrayList<>();
     	
 		//no sampling
-    	fc = new FilteredClassifier();
     	
     	for(i=0; i<3; i++) {
     		r = new Record(project,releases,featureSel,"No sampling");
@@ -268,6 +269,7 @@ public class AnalyzeData {
     	opts = new String[]  {"-B", "1.0", "-Z", String.valueOf(2*percent*100)};
 		resample.setOptions(opts);
     	resample.setInputFormat(training);
+    	fc.setFilter(resample);    	
     	
     	for(i=0; i<3; i++) {
     		r = new Record(project,releases,featureSel,"Oversampling");
@@ -327,8 +329,6 @@ public class AnalyzeData {
                 }
             }    
 
-        } catch (FileNotFoundException e) {
-        	logger.severe(e.toString());
         } catch (IOException e) {
         	logger.severe(e.toString());
         }	
@@ -427,7 +427,7 @@ public class AnalyzeData {
 	
 //-----------------------------------------------------------------------------------------------------------------------------------------------------
 	
-	public static void main(String args[]) throws IOException {
+	public static void main(String[] args) throws IOException {
 		List<String> attributes = new ArrayList<>();
 		
 		JSONReader jr = new JSONReader();	   
