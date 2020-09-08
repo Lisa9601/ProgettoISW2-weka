@@ -236,7 +236,7 @@ public class AnalyzeData {
     	
     	for(i=0; i<3; i++) {
     		r = new Record(project,releases,featureSel,"Oversampling");
-    		classifier(training, testing, new FilteredClassifier(), r, i);
+    		classifier(training, testing, fc, r, i);
     		records.add(r);
     	}
     	
@@ -256,7 +256,7 @@ public class AnalyzeData {
     	
     	for(i=0; i<3; i++) {
     		r = new Record(project,releases,featureSel,"Undersampling");
-    		classifier(training, testing, new FilteredClassifier(), r, i);
+    		classifier(training, testing, fc, r, i);
     		records.add(r);
     	}
 
@@ -275,7 +275,7 @@ public class AnalyzeData {
     	
     	for(i=0; i<3; i++) {
     		r = new Record(project,releases,featureSel,"SMOTE");
-    		classifier(training, testing, new FilteredClassifier(), r, i);
+    		classifier(training, testing, fc, r, i);
     		records.add(r);
     	}
     	
